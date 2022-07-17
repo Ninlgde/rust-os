@@ -4,6 +4,8 @@ use core::arch::asm;
 const SYSCALL_WRITE: usize = 64;
 const SYSCALL_EXIT: usize = 93;
 const SYSCALL_TASKINFO: usize = 22;
+const SYSCALL_YIELD: usize = 124;
+const SYSCALL_GET_TIME: usize = 169;
 
 #[inline(always)]
 fn syscall(id: usize, args: [usize; 3]) -> isize {
@@ -39,4 +41,12 @@ pub fn sys_exit(xstate: i32) -> isize {
 
 pub fn sys_taskinfo() -> isize {
     syscall(SYSCALL_TASKINFO, [0; 3])
+}
+
+pub fn sys_yield() -> isize {
+    syscall(SYSCALL_YIELD, [0; 3])
+}
+
+pub fn sys_get_time() -> u64 {
+    syscall(SYSCALL_GET_TIME, [0; 3]) as u64
 }

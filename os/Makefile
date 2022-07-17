@@ -5,16 +5,16 @@ KERNEL_ELF := target/$(TARGET)/$(MODE)/os
 KERNEL_BIN := $(KERNEL_ELF).bin
 DISASM_TMP := target/$(TARGET)/$(MODE)/asm
 
+# BOARD
+BOARD		?= qemu
+SBI			?= rustsbi
+BOOTLOADER	:= ../bootloader/$(SBI)-$(BOARD).bin
+K210_BOOTLOADER_SIZE := 131072
+
 # Building mode argument
 ifeq ($(MODE), release)
 	MODE_ARG := --release
 endif
-
-# BOARD
-BOARD ?= qemu
-SBI ?= rustsbi
-BOOTLOADER := ../bootloader/$(SBI)-$(BOARD).bin
-K210_BOOTLOADER_SIZE := 131072
 
 # KERNEL ENTRY
 ifeq ($(BOARD), qemu)
@@ -25,7 +25,7 @@ endif
 
 # Run K210
 K210-SERIALPORT	= /dev/ttyUSB0
-K210-BURNER = ../tools/kflash.py
+K210-BURNER		= ../tools/kflash.py
 
 # Binutils
 OBJDUMP := rust-objdump --arch-name=riscv64
@@ -44,10 +44,10 @@ else ifeq ($(BOARD), k210)
 endif
 
 env:
-	(rustup target list | grep "riscv64gc-unknown-none-elf (installed)") || rustup target add $(TARGET)
-	cargo install cargo-binutils --vers =0.3.3
 	rustup component add rust-src
 	rustup component add llvm-tools-preview
+	cargo install cargo-binutils --vers =0.3.3
+	rustup target add riscv64gc-unknown-none-elf
 
 $(KERNEL_BIN): kernel
 	@$(OBJCOPY) $(KERNEL_ELF) --strip-all -O binary $@
@@ -58,7 +58,6 @@ kernel:
 	@cp src/linker-$(BOARD).ld src/linker.ld
 	@cargo build $(MODE_ARG) --features "board_$(BOARD)"
 	@rm src/linker.ld
-
 
 clean:
 	@cargo clean
@@ -89,7 +88,7 @@ else
 	@mv $(BOOTLOADER).copy $(KERNEL_BIN)
 	@sudo chmod 777 $(K210-SERIALPORT)
 	python3 $(K210-BURNER) -p $(K210-SERIALPORT) -b 1500000 $(KERNEL_BIN)
-	python3 -m serial.tools.miniterm --eol LF --dtr 0 --rts 0 --filter direct $(K210-SERIALPORT) 115200
+	python3 -m serial.tools.miniterm  --eol LF --dtr 0 --rts 0 --filter direct $(K210-SERIALPORT) 115200
 endif
 
 debug: build
