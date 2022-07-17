@@ -53,34 +53,33 @@ struct AppManager {
 }
 
 impl AppManager {
-
     unsafe fn load_app(&self, app_id: usize) {
         if app_id >= self.num_app {
             panic!("All applications completed!");
         }
-        warn!("[kernel] Loading app_{}", app_id);
+        trace!("[kernel] Loading app_{}", app_id);
         // clear icache
         asm!("fence.i");
         // clear app area
         core::slice::from_raw_parts_mut(
             APP_BASE_ADDRESS as *mut u8,
-            APP_SIZE_LIMIT
+            APP_SIZE_LIMIT,
         ).fill(0);
         let app_src = core::slice::from_raw_parts(
             self.app_start[app_id] as *const u8,
-            self.app_start[app_id + 1] - self.app_start[app_id]
+            self.app_start[app_id + 1] - self.app_start[app_id],
         );
         let app_dst = core::slice::from_raw_parts_mut(
             APP_BASE_ADDRESS as *mut u8,
-            app_src.len()
+            app_src.len(),
         );
         app_dst.copy_from_slice(app_src);
     }
 
     pub fn print_app_info(&self) {
-        warn!("[kernel] num_app = {}", self.num_app);
+        trace!("[kernel] num_app = {}", self.num_app);
         for i in 0..self.num_app {
-            warn!(
+            trace!(
                 "[kernel] app_{} [{:#x}, {:#x})",
                 i,
                 self.app_start[i],
@@ -94,6 +93,17 @@ impl AppManager {
 
     pub fn move_to_next_app(&mut self) {
         self.current_app += 1;
+    }
+
+    pub fn print_current_app(&self) {
+        let id = self.get_current_app();
+        trace!(
+                "[kernel] task info: id={} app_{} [{:#x}, {:#x})",
+                id,
+                id,
+                self.app_start[id],
+                self.app_start[id + 1]
+            );
     }
 }
 
@@ -123,6 +133,10 @@ pub fn init() {
 /// print apps info
 pub fn print_app_info() {
     APP_MANAGER.exclusive_access().print_app_info();
+}
+
+pub fn print_current_app() {
+    APP_MANAGER.exclusive_access().print_current_app();
 }
 
 /// run next app

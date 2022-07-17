@@ -9,7 +9,7 @@ use riscv::register::sstatus::{self, SPP};
 #[no_mangle]
 fn main() -> i32 {
     info!("Try to access privileged CSR in U Mode");
-    warn!("Kernel should kill this application!");
+    info!("Kernel should kill this application!");
     unsafe {
         sstatus::set_spp(SPP::User);
     }

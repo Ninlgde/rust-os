@@ -6,6 +6,7 @@
 mod console;
 #[macro_use]
 mod logging;
+mod stack_trace;
 mod lang_items;
 mod sbi;
 
@@ -24,10 +25,9 @@ global_asm!(include_str!("link_app.S"));
 
 #[no_mangle]
 pub fn rust_main() -> ! {
-
     clear_bss();
     logging::init();
-    println!("hello world!!");
+    println!("[kernel] hello world!!");
     trap::init();
     batch::init();
     batch::run_next_app();
