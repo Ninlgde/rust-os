@@ -1,6 +1,10 @@
 use core::arch::asm;
 
 
+const SYSCALL_WRITE: usize = 64;
+const SYSCALL_EXIT: usize = 93;
+
+#[inline(always)]
 fn syscall(id: usize, args: [usize; 3]) -> isize {
     let mut ret: isize;
     unsafe {
@@ -14,9 +18,6 @@ fn syscall(id: usize, args: [usize; 3]) -> isize {
     }
     ret
 }
-
-const SYSCALL_WRITE: usize = 64;
-const SYSCALL_EXIT: usize = 93;
 
 /// 功能：将内存中缓冲区中的数据写入文件。
 /// 参数：`fd` 表示待写入文件的文件描述符；

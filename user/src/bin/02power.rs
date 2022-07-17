@@ -19,7 +19,7 @@ fn main() -> i32 {
         index = (index + 1) % SIZE;
         pow[index] = last * P % MOD;
         if i % 10000 == 0 {
-            info!("{}^{}={}(MOD {})", P, i, pow[index], MOD);
+            debug!("{}^{}={}(MOD {})", P, i, pow[index], MOD);
         }
     }
     info!("Test power OK!");

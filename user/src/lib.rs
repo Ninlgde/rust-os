@@ -4,6 +4,7 @@
 
 #[macro_use]
 pub mod console;
+#[macro_use]
 pub mod logging;
 mod syscall;
 mod lang_items;
@@ -12,6 +13,7 @@ mod lang_items;
 #[link_section = ".text.entry"]
 pub extern "C" fn _start() -> ! {
     clear_bss();
+    logging::init();
     exit(main());
     panic!("unreachable after sys_exit!");
 }
