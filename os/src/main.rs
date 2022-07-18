@@ -2,6 +2,13 @@
 #![no_main]
 #![feature(panic_info_message)]
 
+#[cfg(feature = "board_k210")]
+#[path = "boards/k210.rs"]
+mod board;
+#[cfg(not(any(feature = "board_k210")))]
+#[path = "boards/qemu.rs"]
+mod board;
+
 #[macro_use]
 mod console;
 #[macro_use]
@@ -12,9 +19,6 @@ mod stack_trace;
 mod lang_items;
 mod sbi;
 
-#[cfg(feature = "board_qemu")]
-#[path = "boards/qemu.rs"]
-mod board;
 mod loader;
 mod sync;
 mod trap;
