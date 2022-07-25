@@ -43,7 +43,7 @@ fn level_to_color_code(level: Level) -> u8 {
 pub fn println_with_level(args: fmt::Arguments, lvl: Level) {
     if lvl <= max_level() {
         print!(
-            "\u{1B}[{}m[{:>5}][{}-{}] {}\u{1B}[0m",
+            "\u{1B}[{}m[{:>5}][{}-{}] [kernel] {}\u{1B}[0m",
             level_to_color_code(lvl),
             lvl.as_str(),
             0, // cpu id

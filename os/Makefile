@@ -6,9 +6,9 @@ KERNEL_BIN := $(KERNEL_ELF).bin
 DISASM_TMP := target/$(TARGET)/$(MODE)/asm
 
 # BOARD
-BOARD		?= qemu
-SBI			?= rustsbi
-BOOTLOADER	:= ../bootloader/$(SBI)-$(BOARD).bin
+BOARD ?= qemu
+SBI ?= rustsbi
+BOOTLOADER := ../bootloader/$(SBI)-$(BOARD).bin
 K210_BOOTLOADER_SIZE := 131072
 
 # Building mode argument
@@ -24,8 +24,8 @@ else ifeq ($(BOARD), k210)
 endif
 
 # Run K210
-K210-SERIALPORT	= /dev/cu.usbserial-1410
-K210-BURNER		= ../tools/kflash.py
+K210-SERIALPORT	= /dev/cu.usbserial* #/dev/cu.usbserial-14110
+K210-BURNER = ../tools/kflash.py
 
 # Binutils
 OBJDUMP := rust-objdump --arch-name=riscv64
@@ -43,11 +43,14 @@ else ifeq ($(BOARD), k210)
 	(which last-k210) || (rm -f last-qemu && touch last-k210 && make clean)
 endif
 
+k:
+	@echo $(K210-SERIALPORT)
+
 env:
+	(rustup target list | grep "riscv64gc-unknown-none-elf (installed)") || rustup target add $(TARGET)
+	cargo install cargo-binutils --vers =0.3.3
 	rustup component add rust-src
 	rustup component add llvm-tools-preview
-	cargo install cargo-binutils --vers =0.3.3
-	rustup target add riscv64gc-unknown-none-elf
 
 $(KERNEL_BIN): kernel
 	@$(OBJCOPY) $(KERNEL_ELF) --strip-all -O binary $@
@@ -72,8 +75,6 @@ disasm-vim: kernel
 
 run: run-inner
 
-
-
 run-inner: build
 ifeq ($(BOARD),qemu)
 	@qemu-system-riscv64 \
@@ -88,7 +89,7 @@ else
 	@mv $(BOOTLOADER).copy $(KERNEL_BIN)
 	@sudo chmod 777 $(K210-SERIALPORT)
 	python3 $(K210-BURNER) -p $(K210-SERIALPORT) -b 1500000 $(KERNEL_BIN)
-	python3 -m serial.tools.miniterm  --eol LF --dtr 0 --rts 0 --filter direct $(K210-SERIALPORT) 115200
+	python3 -m serial.tools.miniterm --eol LF --dtr 0 --rts 0 --filter direct $(K210-SERIALPORT) 115200
 endif
 
 debug: build
