@@ -59,9 +59,9 @@ pub struct TaskManagerInner {
 lazy_static! {
     /// Global variable: TASK_MANAGER
     pub static ref TASK_MANAGER: TaskManager = {
-        println!("init TASK_MANAGER");
+        trace!("init TASK_MANAGER");
         let num_app = get_num_app();
-        println!("num_app = {}", num_app);
+        trace!("num_app = {}", num_app);
         let mut tasks: Vec<TaskControlBlock> = Vec::new();
         for i in 0..num_app {
             tasks.push(TaskControlBlock::new(
@@ -112,6 +112,7 @@ impl TaskManager {
         let mut inner = self.inner.exclusive_access();
         let current = inner.current_task;
         inner.tasks[current].task_status = TaskStatus::Exited;
+        inner.tasks[current].release();
     }
 
     /// Find next task to run and return app id.

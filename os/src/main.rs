@@ -46,7 +46,7 @@ pub fn rust_main() -> ! {
     logging::init();
     info!("Hello, world!");
     mm::init();
-    mm::unit_tests();
+    // mm::unit_tests();
     trap::init();
     // trap::enable_interrupt();
     trap::enable_timer_interrupt();

@@ -17,7 +17,7 @@ pub fn init() {
     KERNEL_SPACE.exclusive_access().activate();
 }
 
-
+#[allow(dead_code)]
 pub fn unit_tests() {
     heap_allocator::heap_test();
     frame_allocator::frame_allocator_test();

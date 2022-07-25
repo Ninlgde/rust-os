@@ -8,8 +8,6 @@ use super::TaskContext;
 /// 任务状态
 #[derive(Copy, Clone, PartialEq)]
 pub enum TaskStatus {
-    /// 未初始化
-    UnInit,
     /// 准备运行
     Ready,
     /// 正在运行
@@ -39,7 +37,10 @@ impl TaskControlBlock {
     pub fn get_user_token(&self) -> usize {
         self.memory_set.token()
     }
+    pub fn release(&mut self) {
+    }
     pub fn new(elf_data: &[u8], app_id: usize) -> Self {
+        trace!("new task control block, app_id={}", app_id);
         // 解析传入的 ELF 格式数据构造应用的地址空间
         let (memory_set, user_sp, entry_point) = MemorySet::from_elf(elf_data);
         // 获取trap context 的物理页帧
