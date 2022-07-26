@@ -6,13 +6,14 @@ use buddy_system_allocator::LockedHeap;
 use crate::config::KERNEL_HEAP_SIZE;
 
 
-/// 知道global_allocator 让rust 有了alloc & dealloc能力
+/// 设置global_allocator 让rust 有了alloc & dealloc能力
 #[global_allocator]
 static HEAP_ALLOCATOR: LockedHeap = LockedHeap::empty();
 
 /// kernel heap space
 static mut HEAP_SPACE: [u8; KERNEL_HEAP_SIZE] = [0; KERNEL_HEAP_SIZE];
 
+/// 初始化 kernel heap
 pub fn init_heap() {
     unsafe {
         HEAP_ALLOCATOR
