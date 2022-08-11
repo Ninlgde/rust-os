@@ -2,6 +2,7 @@
 
 /// k210 的 时钟评率 403000000 cpu频率 计数器 mtime CSR 增长的频率为 CPU 频率的 1/62
 pub const CLOCK_FREQ: usize = 403000000 / 62;
+pub const MEMORY_END: usize = 0x80600000;
 
 
 pub const MMIO: &[(usize, usize)] = &[

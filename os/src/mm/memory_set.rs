@@ -76,6 +76,18 @@ impl MemorySet {
             permission,
         ), None);
     }
+    ///Remove `MapArea` that starts with `start_vpn`
+    pub fn remove_area_with_start_vpn(&mut self, start_vpn: VirtPageNum) {
+        if let Some((idx, area)) = self
+            .areas
+            .iter_mut()
+            .enumerate()
+            .find(|(_, area)| area.vpn_range.get_start() == start_vpn)
+        {
+            area.unmap(&mut self.page_table);
+            self.areas.remove(idx);
+        }
+    }
     /// Mention that trampoline is not collected by areas.
     fn map_trampoline(&mut self) {
         self.page_table.map(
@@ -238,8 +250,31 @@ impl MemorySet {
             elf.header.pt2.entry_point() as usize,
         )
     }
+    ///Clone a same `MemorySet`
+    pub fn from_existed_user(user_space: &Self) -> Self {
+        let mut memory_set = Self::new_bare();
+        // map trampoline
+        memory_set.map_trampoline();
+        // copy data sections/trap_context/user_stack
+        for area in user_space.areas.iter() {
+            let new_area = MapArea::from_another(area);
+            memory_set.push(new_area, None);
+            // copy data from another space
+            for vpn in area.vpn_range {
+                let src_ppn = user_space.translate(vpn).unwrap().ppn();
+                let dst_ppn = memory_set.translate(vpn).unwrap().ppn();
+                dst_ppn
+                    .get_bytes_array()
+                    .copy_from_slice(src_ppn.get_bytes_array());
+            }
+        }
+        memory_set
+    }
     pub fn translate(&self, vpn: VirtPageNum) -> Option<PageTableEntry> {
         self.page_table.translate(vpn)
+    }
+    pub fn recycle_data_pages(&mut self) {
+        self.areas.clear();
     }
 }
 
@@ -271,6 +306,15 @@ impl MapArea {
             data_frames: BTreeMap::new(),
             map_type,
             map_perm,
+        }
+    }
+    /// 从其他进程复制一个逻辑段
+    pub fn from_another(another: &Self) -> Self {
+        Self {
+            vpn_range: VPNRange::new(another.vpn_range.get_start(), another.vpn_range.get_end()),
+            data_frames: BTreeMap::new(),
+            map_type: another.map_type,
+            map_perm: another.map_perm,
         }
     }
     /// 将当前逻辑段到物理内存的映射从传入的该逻辑段所属的地址空间的多级页表中加入

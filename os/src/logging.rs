@@ -51,6 +51,7 @@ pub fn println_with_level(args: fmt::Arguments, lvl: Level) {
             args
         );
     }
+    // print!("{}", args);
 }
 
 #[macro_export]

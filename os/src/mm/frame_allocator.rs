@@ -62,11 +62,18 @@ pub struct StackFrameAllocator {
 
 impl StackFrameAllocator {
     pub fn init(&mut self, l: PhysPageNum, r: PhysPageNum) {
-        trace!("frame memory left {:?}, right {:?}", l, r);
+        info!("frame memory left {:?}, right {:?}", l, r);
         self.current = l.0;
         self.end = r.0;
+        info!("last {} Physical Frames.", self.end - self.current);
     }
 }
+
+// last 2723 Physical Frames.
+// .text [0x80200000, 0x8020e000)
+// .rodata [0x8020e000, 0x80212000)
+// .data [0x80212000, 0x8034c000)
+// .bss [0x8034c000, 0x8055d000)
 
 impl FrameAllocator for StackFrameAllocator {
     fn new() -> Self {
@@ -124,6 +131,7 @@ pub fn init_frame_allocator() {
         /// 获取物理地址start, 定义于linker.ld
         fn ekernel();
     }
+    info!("init frame allocator");
     // 根据物理地址初始化 frame_allocator
     FRAME_ALLOCATOR.exclusive_access().init(
         PhysAddr::from(ekernel as usize).ceil(),

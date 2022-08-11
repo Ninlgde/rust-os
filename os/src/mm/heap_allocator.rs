@@ -16,6 +16,7 @@ static mut HEAP_SPACE: [u8; KERNEL_HEAP_SIZE] = [0; KERNEL_HEAP_SIZE];
 /// 初始化 kernel heap
 pub fn init_heap() {
     unsafe {
+        info!("init heap");
         HEAP_ALLOCATOR
             .lock()
             .init(HEAP_SPACE.as_ptr() as usize, KERNEL_HEAP_SIZE);

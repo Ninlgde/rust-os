@@ -13,7 +13,7 @@ const VA_WIDTH_SV39: usize = 39;
 
 /// 物理页编号的宽度 44 = 56-12
 const PPN_WIDTH_SV39: usize = PA_WIDTH_SV39 - PAGE_SIZE_BITS;
-/// 虚拟页编号的宽度 27 = 44-12
+/// 虚拟页编号的宽度 27 = 39-12
 const VPN_WIDTH_SV39: usize = VA_WIDTH_SV39 - PAGE_SIZE_BITS;
 
 /// 物理地址
@@ -93,6 +93,10 @@ impl PhysAddr {
     /// 是否对齐
     pub fn aligned(&self) -> bool {
         self.page_offset() == 0
+    }
+    ///Get mutable reference to `PhysAddr` value
+    pub fn get_mut<T>(&self) -> &'static mut T {
+        unsafe { (self.0 as *mut T).as_mut().unwrap() }
     }
 }
 
@@ -178,7 +182,7 @@ impl PhysPageNum {
             core::slice::from_raw_parts_mut(pa.0 as *mut u8, 4096)
         }
     }
-    /// 将ppn转换为pte可变列表,并获取
+    /// 将ppn转换为可变pte列表,并获取
     pub fn get_pte_array(&self) -> &'static mut [PageTableEntry] {
         let pa: PhysAddr = (*self).into();
         unsafe {
