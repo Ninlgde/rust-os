@@ -12,19 +12,19 @@
 mod context;
 mod switch;
 
+mod manager;
+mod pid;
+mod processor;
 #[allow(clippy::module_inception)]
 mod task;
-mod pid;
-mod manager;
-mod processor;
 
 use lazy_static::*;
 use task::{TaskControlBlock, TaskStatus};
 
-pub use context::TaskContext;
-use crate::loader::get_app_data_by_name;
-pub use manager::add_task;
+use crate::fs::{open_file, OpenFlags};
 use alloc::sync::Arc;
+pub use context::TaskContext;
+pub use manager::add_task;
 pub use processor::{
     current_task, current_trap_cx, current_user_token, run_tasks, schedule, take_current_task,
     Processor,
@@ -61,13 +61,10 @@ pub fn exit_current_and_run_next(exit_code: i32) {
     let task = take_current_task().unwrap();
 
     #[cfg(feature = "board_qemu")]
-        let pid = task.getpid();
+    let pid = task.getpid();
     #[cfg(feature = "board_qemu")]
     if pid == IDLE_PID {
-        info!(
-            "Idle process exit with exit_code {} ...",
-            exit_code
-        );
+        info!("Idle process exit with exit_code {} ...", exit_code);
         if exit_code != 0 {
             //crate::sbi::shutdown(255); //255 == -1 for err hint
             crate::board::QEMU_EXIT_HANDLE.exit_failure();
@@ -108,9 +105,11 @@ pub fn exit_current_and_run_next(exit_code: i32) {
 }
 
 lazy_static! {
-    pub static ref INITPROC: Arc<TaskControlBlock> = Arc::new(
-        TaskControlBlock::new(get_app_data_by_name("initproc").unwrap())
-    );
+    pub static ref INITPROC: Arc<TaskControlBlock> = Arc::new({
+        let inode = open_file("initproc", OpenFlags::RDONLY).unwrap();
+        let v = inode.read_all();
+        TaskControlBlock::new(v.as_slice())
+    });
 }
 
 pub fn add_initproc() {

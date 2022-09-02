@@ -1,6 +1,6 @@
-use riscv::register::sstatus::SPP;
 use riscv::register::sstatus;
 use riscv::register::sstatus::Sstatus;
+use riscv::register::sstatus::SPP;
 
 #[repr(C)]
 pub struct TrapContext {
@@ -16,7 +16,6 @@ pub struct TrapContext {
     pub kernel_sp: usize,
     /// trap handler(virtual address)
     pub trap_handler: usize,
-
 }
 
 impl TrapContext {

@@ -9,6 +9,11 @@ edition = "2021"
 riscv = { git = "https://github.com/rcore-os/riscv", features = ["inline-asm"] }
 log = "0.4"
 buddy_system_allocator = "0.6"
+bitflags = "1.2.1"
 
 [profile.release]
 debug = true
+
+[features]
+board_qemu = []
+board_k210 = []

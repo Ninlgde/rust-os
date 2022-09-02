@@ -1,5 +1,5 @@
-use core::{fmt, mem};
 use core::sync::atomic::{AtomicUsize, Ordering};
+use core::{fmt, mem};
 use log::{self, Level, LevelFilter};
 
 static MAX_LOG_LEVEL_FILTER: AtomicUsize = AtomicUsize::new(0);
@@ -46,7 +46,7 @@ pub fn println_with_level(args: fmt::Arguments, lvl: Level) {
             "\u{1B}[{}m[{:>5}][{}-{}] [kernel] {}\u{1B}[0m",
             level_to_color_code(lvl),
             lvl.as_str(),
-            0, // cpu id
+            0,      // cpu id
             "main", // thread id
             args
         );
@@ -68,14 +68,12 @@ macro_rules! error {
     }
 }
 
-
 #[macro_export]
 macro_rules! warn {
     ($fmt: literal $(, $($arg: tt)+)?) => {
         log!(log::Level::Warn, $fmt $(, $($arg)+)?);
     }
 }
-
 
 #[macro_export]
 macro_rules! info {
@@ -84,14 +82,12 @@ macro_rules! info {
     }
 }
 
-
 #[macro_export]
 macro_rules! debug {
     ($fmt: literal $(, $($arg: tt)+)?) => {
         log!(log::Level::Debug, $fmt $(, $($arg)+)?);
     }
 }
-
 
 #[macro_export]
 macro_rules! trace {

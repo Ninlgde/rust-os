@@ -1,19 +1,18 @@
 //! 地址空间 实现
 
-use alloc::sync::Arc;
+use crate::config::{MEMORY_END, MMIO, PAGE_SIZE, TRAMPOLINE, TRAP_CONTEXT, USER_STACK_SIZE};
+use crate::mm::address::{PhysAddr, PhysPageNum, VPNRange, VirtAddr, VirtPageNum};
+use crate::mm::frame_allocator::{frame_alloc, FrameTracker};
+use crate::mm::page_table::{PTEFlags, PageTable};
+use crate::mm::PageTableEntry;
+use crate::sync::UPSafeCell;
+use crate::util::range::StepByOne;
 use alloc::collections::BTreeMap;
+use alloc::sync::Arc;
 use alloc::vec::Vec;
 use core::arch::asm;
 use lazy_static::lazy_static;
 use riscv::register::satp;
-use crate::config::{MEMORY_END, MMIO, PAGE_SIZE, TRAMPOLINE, TRAP_CONTEXT, USER_STACK_SIZE};
-use crate::mm::address::{PhysAddr, PhysPageNum, VirtAddr, VirtPageNum, VPNRange};
-use crate::mm::frame_allocator::{frame_alloc, FrameTracker};
-use crate::mm::page_table::{PageTable, PTEFlags};
-use crate::mm::PageTableEntry;
-use crate::util::range::StepByOne;
-use crate::sync::UPSafeCell;
-
 
 extern "C" {
     fn stext();
@@ -35,6 +34,11 @@ lazy_static! {
             UPSafeCell::new(MemorySet::new_kernel())
         }
     );
+}
+
+///Get kernelspace root ppn
+pub fn kernel_token() -> usize {
+    KERNEL_SPACE.exclusive_access().token()
 }
 
 /// 地址空间
@@ -67,14 +71,14 @@ impl MemorySet {
     /// Assume that no conflicts.
     pub fn insert_framed_area(
         &mut self,
-        start_va: VirtAddr, end_va: VirtAddr, permission: MapPermission,
+        start_va: VirtAddr,
+        end_va: VirtAddr,
+        permission: MapPermission,
     ) {
-        self.push(MapArea::new(
-            start_va,
-            end_va,
-            MapType::Framed,
-            permission,
-        ), None);
+        self.push(
+            MapArea::new(start_va, end_va, MapType::Framed, permission),
+            None,
+        );
     }
     ///Remove `MapArea` that starts with `start_vpn`
     pub fn remove_area_with_start_vpn(&mut self, start_vpn: VirtPageNum) {

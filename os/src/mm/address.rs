@@ -1,10 +1,9 @@
 //! 地址转换相关操作
 
-use core::fmt;
-use core::fmt::{Debug, Formatter};
 use crate::config::{PAGE_SIZE, PAGE_SIZE_BITS};
 use crate::mm::page_table::PageTableEntry;
 pub use crate::util::range::{SimpleRange, StepByOne};
+use core::fmt::{self, Debug, Formatter};
 
 /// 物理地址实际宽度
 const PA_WIDTH_SV39: usize = 56;
@@ -59,22 +58,30 @@ impl Debug for PhysPageNum {
 
 /// 类型转换方法 usize -> PA
 impl From<usize> for PhysAddr {
-    fn from(v: usize) -> Self { Self(v & ((1 << PA_WIDTH_SV39) - 1)) }
+    fn from(v: usize) -> Self {
+        Self(v & ((1 << PA_WIDTH_SV39) - 1))
+    }
 }
 
 /// 类型转换方法 usize -> PPN
 impl From<usize> for PhysPageNum {
-    fn from(v: usize) -> Self { Self(v & ((1 << PPN_WIDTH_SV39) - 1)) }
+    fn from(v: usize) -> Self {
+        Self(v & ((1 << PPN_WIDTH_SV39) - 1))
+    }
 }
 
 /// 类型转换方法 PA -> usize
 impl From<PhysAddr> for usize {
-    fn from(v: PhysAddr) -> Self { v.0 }
+    fn from(v: PhysAddr) -> Self {
+        v.0
+    }
 }
 
 /// 类型转换方法 PPN -> usize
 impl From<PhysPageNum> for usize {
-    fn from(v: PhysPageNum) -> Self { v.0 }
+    fn from(v: PhysPageNum) -> Self {
+        v.0
+    }
 }
 
 impl PhysAddr {
@@ -98,16 +105,24 @@ impl PhysAddr {
     pub fn get_mut<T>(&self) -> &'static mut T {
         unsafe { (self.0 as *mut T).as_mut().unwrap() }
     }
+    ///Get reference to `PhysAddr` value
+    pub fn get_ref<T>(&self) -> &'static T {
+        unsafe { (self.0 as *const T).as_ref().unwrap() }
+    }
 }
 
 /// 类型转换方法 usize -> VA
 impl From<usize> for VirtAddr {
-    fn from(v: usize) -> Self { Self(v & ((1 << VA_WIDTH_SV39) - 1)) }
+    fn from(v: usize) -> Self {
+        Self(v & ((1 << VA_WIDTH_SV39) - 1))
+    }
 }
 
 /// 类型转换方法 usize -> VPN
 impl From<usize> for VirtPageNum {
-    fn from(v: usize) -> Self { Self(v & ((1 << VPN_WIDTH_SV39) - 1)) }
+    fn from(v: usize) -> Self {
+        Self(v & ((1 << VPN_WIDTH_SV39) - 1))
+    }
 }
 
 /// 类型转换方法 VA -> usize
@@ -123,7 +138,9 @@ impl From<VirtAddr> for usize {
 
 /// 类型转换方法 VPN -> usize
 impl From<VirtPageNum> for usize {
-    fn from(v: VirtPageNum) -> Self { v.0 }
+    fn from(v: VirtPageNum) -> Self {
+        v.0
+    }
 }
 
 impl VirtAddr {
@@ -178,23 +195,18 @@ impl PhysPageNum {
     /// 获取物理页可变字节数组
     pub fn get_bytes_array(&self) -> &'static mut [u8] {
         let pa: PhysAddr = (*self).into();
-        unsafe {
-            core::slice::from_raw_parts_mut(pa.0 as *mut u8, 4096)
-        }
+        unsafe { core::slice::from_raw_parts_mut(pa.0 as *mut u8, 4096) }
     }
     /// 将ppn转换为可变pte列表,并获取
     pub fn get_pte_array(&self) -> &'static mut [PageTableEntry] {
         let pa: PhysAddr = (*self).into();
-        unsafe {
-            core::slice::from_raw_parts_mut(pa.0 as *mut PageTableEntry, 512)
-        }
+        unsafe { core::slice::from_raw_parts_mut(pa.0 as *mut PageTableEntry, 512) }
     }
     /// 获取可变ppn as T
+    ///Get Get mutable reference to `PhysAddr` value on `PhysPageNum`
     pub fn get_mut<T>(&self) -> &'static mut T {
         let pa: PhysAddr = (*self).into();
-        unsafe {
-            (pa.0 as *mut T).as_mut().unwrap()
-        }
+        pa.get_mut()
     }
 }
 
@@ -212,6 +224,11 @@ impl VirtPageNum {
 }
 
 impl StepByOne for VirtPageNum {
+    fn step(&mut self) {
+        self.0 += 1;
+    }
+}
+impl StepByOne for PhysPageNum {
     fn step(&mut self) {
         self.0 += 1;
     }

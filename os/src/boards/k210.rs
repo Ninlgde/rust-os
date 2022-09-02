@@ -4,7 +4,6 @@
 pub const CLOCK_FREQ: usize = 403000000 / 62;
 pub const MEMORY_END: usize = 0x80600000;
 
-
 pub const MMIO: &[(usize, usize)] = &[
     // we don't need clint in S priv when running
     // we only need claim/complete for target0 after initializing
@@ -23,3 +22,5 @@ pub const MMIO: &[(usize, usize)] = &[
     (0x5300_0000, 0x1000), /* SPI1      */
     (0x5400_0000, 0x1000), /* SPI2      */
 ];
+
+pub type BlockDeviceImpl = crate::drivers::block::SDCardWrapper;

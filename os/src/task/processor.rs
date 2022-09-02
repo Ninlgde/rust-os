@@ -1,14 +1,13 @@
 //! 处理器的实现
 
-
-use alloc::sync::Arc;
-use lazy_static::lazy_static;
+use crate::sync::UPSafeCell;
 use crate::task::manager::fetch_task;
 use crate::task::switch::__switch;
 use crate::task::task::{TaskControlBlock, TaskStatus};
 use crate::task::TaskContext;
 use crate::trap::TrapContext;
-use crate::sync::UPSafeCell;
+use alloc::sync::Arc;
+use lazy_static::lazy_static;
 
 ///Processor management structure
 pub struct Processor {

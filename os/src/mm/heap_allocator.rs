@@ -1,10 +1,8 @@
 //! 堆内存申请器
 //! 使用buddy_system_allocator提供的LockedHeap实现
 
-
-use buddy_system_allocator::LockedHeap;
 use crate::config::KERNEL_HEAP_SIZE;
-
+use buddy_system_allocator::LockedHeap;
 
 /// 设置global_allocator 让rust 有了alloc & dealloc能力
 #[global_allocator]
@@ -23,13 +21,11 @@ pub fn init_heap() {
     }
 }
 
-
 /// 定义alloc_error_handler, 处理heap申请出错.
 #[alloc_error_handler]
 pub fn handle_alloc_error(layout: core::alloc::Layout) -> ! {
     panic!("Heap allocation error, layout = {:?}", layout);
 }
-
 
 /// 单元测试
 #[allow(unused)]

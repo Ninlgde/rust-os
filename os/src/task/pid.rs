@@ -1,10 +1,10 @@
 //! pid 实现
 
+use crate::config::{KERNEL_STACK_SIZE, PAGE_SIZE, TRAMPOLINE};
+use crate::mm::{MapPermission, VirtAddr, KERNEL_SPACE};
+use crate::sync::UPSafeCell;
 use alloc::vec::Vec;
 use lazy_static::lazy_static;
-use crate::config::{KERNEL_STACK_SIZE, PAGE_SIZE, TRAMPOLINE};
-use crate::mm::{KERNEL_SPACE, MapPermission, VirtAddr};
-use crate::sync::UPSafeCell;
 
 ///Pid 申请器
 pub struct PidAllocator {
@@ -62,7 +62,6 @@ pub fn pid_alloc() -> PidHandle {
     PID_ALLOCATOR.exclusive_access().alloc()
 }
 
-
 /// Return (bottom, top) of a kernel stack in kernel space.
 pub fn kernel_stack_position(app_id: usize) -> (usize, usize) {
     let top = TRAMPOLINE - app_id * (KERNEL_STACK_SIZE + PAGE_SIZE);
@@ -90,8 +89,8 @@ impl KernelStack {
     #[allow(unused)]
     ///Push a value on top of kernelstack
     pub fn push_on_top<T>(&self, value: T) -> *mut T
-        where
-            T: Sized,
+    where
+        T: Sized,
     {
         let kernel_stack_top = self.get_top();
         let ptr_mut = (kernel_stack_top - core::mem::size_of::<T>()) as *mut T;

@@ -17,3 +17,5 @@ easy-fs-fuse/target/*
 tools/
 pushall.sh
 *.bak
+
+.DS_Store

@@ -1,12 +1,12 @@
 //! 物理页(frame)申请器
 
+use crate::config::MEMORY_END;
+use crate::mm::address::{PhysAddr, PhysPageNum};
+use crate::sync::UPSafeCell;
 use alloc::vec::Vec;
 use core::fmt;
 use core::fmt::{Debug, Formatter};
 use lazy_static::lazy_static;
-use crate::config::MEMORY_END;
-use crate::mm::address::{PhysAddr, PhysPageNum};
-use crate::sync::UPSafeCell;
 
 /// 使用tracker包装物理页
 pub struct FrameTracker {
@@ -69,12 +69,6 @@ impl StackFrameAllocator {
     }
 }
 
-// last 2723 Physical Frames.
-// .text [0x80200000, 0x8020e000)
-// .rodata [0x8020e000, 0x80212000)
-// .data [0x80212000, 0x8034c000)
-// .bss [0x8034c000, 0x8055d000)
-
 impl FrameAllocator for StackFrameAllocator {
     fn new() -> Self {
         Self {
@@ -103,10 +97,7 @@ impl FrameAllocator for StackFrameAllocator {
     fn dealloc(&mut self, ppn: PhysPageNum) {
         let ppn = ppn.0;
         // validity check
-        if ppn >= self.current || self.recycled
-            .iter()
-            .find(|&v| { *v == ppn })
-            .is_some() {
+        if ppn >= self.current || self.recycled.iter().find(|&v| *v == ppn).is_some() {
             // 不符合alloc的内存条件啊.
             panic!("Frame ppn={:#x} has not been allocated!", ppn);
         }
@@ -150,12 +141,9 @@ pub fn frame_alloc() -> Option<FrameTracker> {
 }
 
 /// 释放一块frame
-fn frame_dealloc(ppn: PhysPageNum) {
-    FRAME_ALLOCATOR
-        .exclusive_access()
-        .dealloc(ppn);
+pub fn frame_dealloc(ppn: PhysPageNum) {
+    FRAME_ALLOCATOR.exclusive_access().dealloc(ppn);
 }
-
 
 // ----------------------- unit tests -----------------------
 
