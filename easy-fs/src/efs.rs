@@ -3,28 +3,35 @@ use crate::{block_cache_sync_all, get_block_cache, Bitmap, BlockDevice, Inode, B
 use alloc::sync::Arc;
 use spin::Mutex;
 
-///An easy file system on block
+///An easy file system on block<br/>
+/// 简易文件系统
 pub struct EasyFileSystem {
-    ///Real device
+    /// 块设备(硬盘)
     pub block_device: Arc<dyn BlockDevice>,
-    ///Inode bitmap
+    /// 索引节点位图
     pub inode_bitmap: Bitmap,
-    ///Data bitmap
+    /// 数据位图
     pub data_bitmap: Bitmap,
+    /// 索引节点区域从哪个block开始
     inode_area_start_block: u32,
+    /// 数据区域从哪个block开始
     data_area_start_block: u32,
 }
 
 type DataBlock = [u8; BLOCK_SZ];
 /// An easy fs over a block device
 impl EasyFileSystem {
-    /// A data block of block size
+    /// A data block of block size<br/>
+    /// `block_device` 块设备,进行物理操作<br/>
+    /// `total_blocks` 设备一共多少个block<br/>
+    /// `inode_bitmap_blocks` 索引节点位图占多少块<br/>
     pub fn create(
         block_device: Arc<dyn BlockDevice>,
         total_blocks: u32,
         inode_bitmap_blocks: u32,
     ) -> Arc<Mutex<Self>> {
         // calculate block size of areas & create bitmaps
+        // 根据传入的参数计算每个区域各应该包含多少块
         let inode_bitmap = Bitmap::new(1, inode_bitmap_blocks as usize);
         let inode_num = inode_bitmap.maximum();
         let inode_area_blocks =
@@ -37,6 +44,7 @@ impl EasyFileSystem {
             (1 + inode_bitmap_blocks + inode_area_blocks) as usize,
             data_bitmap_blocks as usize,
         );
+        // 创建efs实例
         let mut efs = Self {
             block_device: Arc::clone(&block_device),
             inode_bitmap,
@@ -44,7 +52,7 @@ impl EasyFileSystem {
             inode_area_start_block: 1 + inode_bitmap_blocks,
             data_area_start_block: 1 + inode_total_blocks + data_bitmap_blocks,
         };
-        // clear all blocks
+        // 将块设备的前 total_blocks 个块清零，因为 easy-fs 要用到它们，这也是为初始化做准备。
         for i in 0..total_blocks {
             get_block_cache(i as usize, Arc::clone(&block_device))
                 .lock()
@@ -54,7 +62,7 @@ impl EasyFileSystem {
                     }
                 });
         }
-        // initialize SuperBlock
+        // 在0号位置初始超级块 SuperBlock
         get_block_cache(0, Arc::clone(&block_device)).lock().modify(
             0,
             |super_block: &mut SuperBlock| {
@@ -80,8 +88,10 @@ impl EasyFileSystem {
         Arc::new(Mutex::new(efs))
     }
     /// Open a block device as a filesystem
+    /// 从硬盘加载一个文件系统
     pub fn open(block_device: Arc<dyn BlockDevice>) -> Arc<Mutex<Self>> {
         // read SuperBlock
+        // 根据超级块,初始化efs
         get_block_cache(0, Arc::clone(&block_device))
             .lock()
             .read(0, |super_block: &SuperBlock| {
@@ -102,6 +112,7 @@ impl EasyFileSystem {
             })
     }
     /// Get the root inode of the filesystem
+    /// 获取 `/` 目录的索引节点
     pub fn root_inode(efs: &Arc<Mutex<Self>>) -> Inode {
         let block_device = Arc::clone(&efs.lock().block_device);
         // acquire efs lock temporarily
@@ -109,13 +120,16 @@ impl EasyFileSystem {
         // release efs lock
         Inode::new(block_id, block_offset, Arc::clone(efs), block_device)
     }
-    /// Get inode by id
+    /// Get inode by id<br/>
+    /// 根据 `inode_id` 获取索引节点实际位置
     pub fn get_disk_inode_pos(&self, inode_id: u32) -> (u32, usize) {
         let inode_size = core::mem::size_of::<DiskInode>();
         let inodes_per_block = (BLOCK_SZ / inode_size) as u32;
+        // 技术block_id
         let block_id = self.inode_area_start_block + inode_id / inodes_per_block;
         (
             block_id,
+            // 计算inode的快内偏移
             (inode_id % inodes_per_block) as usize * inode_size,
         )
     }
@@ -127,13 +141,13 @@ impl EasyFileSystem {
     pub fn alloc_inode(&mut self) -> u32 {
         self.inode_bitmap.alloc(&self.block_device).unwrap() as u32
     }
-
     /// Allocate a data block
     pub fn alloc_data(&mut self) -> u32 {
         self.data_bitmap.alloc(&self.block_device).unwrap() as u32 + self.data_area_start_block
     }
     /// Deallocate a data block
     pub fn dealloc_data(&mut self, block_id: u32) {
+        // 先清理数据块
         get_block_cache(block_id as usize, Arc::clone(&self.block_device))
             .lock()
             .modify(0, |data_block: &mut DataBlock| {
@@ -141,6 +155,7 @@ impl EasyFileSystem {
                     *p = 0;
                 })
             });
+        // 再清理位图
         self.data_bitmap.dealloc(
             &self.block_device,
             (block_id - self.data_area_start_block) as usize,

@@ -25,11 +25,17 @@ const INDIRECT2_BOUND: usize = INDIRECT1_BOUND + INODE_INDIRECT2_COUNT;
 /// Super block of a filesystem
 #[repr(C)]
 pub struct SuperBlock {
+    /// 魔数
     magic: u32,
+    /// 块数总计
     pub total_blocks: u32,
+    /// 索引节点位图的块数
     pub inode_bitmap_blocks: u32,
+    /// 索引节点区域的块数
     pub inode_area_blocks: u32,
+    /// 数据块位图的块数
     pub data_bitmap_blocks: u32,
+    /// 数据块区域的块数
     pub data_area_blocks: u32,
 }
 
@@ -70,31 +76,45 @@ impl SuperBlock {
     }
 }
 
-/// Type of a disk inode
+/// Type of a disk inode 索引节点的类型 文件 or 目录
 #[derive(PartialEq)]
 pub enum DiskInodeType {
     File,
     Directory,
 }
 
-/// A indirect block
+/// A indirect block<br/>
+/// 索引用u32来遍历
 type IndirectBlock = [u32; BLOCK_SZ / 4];
 /// A data block
+/// 数据用byte遍历
 type DataBlock = [u8; BLOCK_SZ];
 
-/// A disk inode
+/// A disk inode 索引节点<br/>
+/// 每个文件/目录在磁盘上均以一个 `DiskInode` 的形式存储<br/>
+/// 每个 `DiskInode` 正好占 128bytes, 4inodes = 1block
 #[repr(C)]
 pub struct DiskInode {
+    /// 文件大小
     pub size: u32,
+    /// 直接索引,一共28*512 = 14KiB<br/>
+    /// 超过这个就需要用到间接索引了
     pub direct: [u32; INODE_DIRECT_COUNT],
+    /// 一级间接索引,指向一个block,每个u32指向一个数据块<br/>
+    /// 一共可以存 128*512 = 64KiB 数据<br/>
+    /// 当超过14+64KiB数据时,启用二级间接索引
     pub indirect1: u32,
+    /// 二级间接索引,指向一个block,每个u32指向一个一级索引<br/>
+    /// 一共可以存 128*64KiB = 8MiB 数据<br/>
     pub indirect2: u32,
+    /// 类型: 文件 or 目录
     type_: DiskInodeType,
 }
 
 impl DiskInode {
-    /// Initialize a disk inode, as well as all direct inodes under it
-    /// indirect1 and indirect2 block are allocated only when they are needed
+    /// 初始化 `DiskInode` <br/>
+    /// 需要把指向索引全部设置为0<br/>
+    /// 一二级间接索引因为暂时没有涌到,设为0.
     pub fn initialize(&mut self, type_: DiskInodeType) {
         self.size = 0;
         self.direct.iter_mut().for_each(|v| *v = 0);
@@ -111,24 +131,30 @@ impl DiskInode {
     pub fn is_file(&self) -> bool {
         self.type_ == DiskInodeType::File
     }
-    /// Get id of block given inner id
+    /// Get id of block given inner id<br/>
+    /// 从索引中查到它自身用于保存文件内容的第 `block_id` 个数据块的块编号
     pub fn get_block_id(&self, inner_id: u32, block_device: &Arc<dyn BlockDevice>) -> u32 {
         let inner_id = inner_id as usize;
         if inner_id < INODE_DIRECT_COUNT {
+            // 编号小于直接索引的数量,那就直接索引
             self.direct[inner_id]
         } else if inner_id < INDIRECT1_BOUND {
+            // 编号小于一级间接索引的数量
             get_block_cache(self.indirect1 as usize, Arc::clone(block_device))
                 .lock()
                 .read(0, |indirect_block: &IndirectBlock| {
+                    // 通过indirect1找到这个block,再找到数据块的编号
                     indirect_block[inner_id - INODE_DIRECT_COUNT]
                 })
         } else {
             let last = inner_id - INDIRECT1_BOUND;
+            // 先通过indirect2找到所指向的一级索引
             let indirect1 = get_block_cache(self.indirect2 as usize, Arc::clone(block_device))
                 .lock()
                 .read(0, |indirect2: &IndirectBlock| {
                     indirect2[last / INODE_INDIRECT1_COUNT]
                 });
+            // 再根据查到的一级间接索引,找到对应的数据块编号
             get_block_cache(indirect1 as usize, Arc::clone(block_device))
                 .lock()
                 .read(0, |indirect1: &IndirectBlock| {
@@ -136,16 +162,21 @@ impl DiskInode {
                 })
         }
     }
-    /// Return block number correspond to size.
+    /// Return block number correspond to size.<br/>
+    /// 把size转换成所需的block数量
     pub fn data_blocks(&self) -> u32 {
         Self::_data_blocks(self.size)
     }
     fn _data_blocks(size: u32) -> u32 {
+        // ceil
         (size + BLOCK_SZ as u32 - 1) / BLOCK_SZ as u32
     }
-    /// Return number of blocks needed include indirect1/2.
+    /// Return number of blocks needed include indirect1/2.<br/>
+    /// 获取所以块的数量,不仅包括数据块，还需要统计索引块
     pub fn total_blocks(size: u32) -> u32 {
+        // 先通过size计算所要占用的数据块数
         let data_blocks = Self::_data_blocks(size) as usize;
+        // 在统计一二级间接索引所占的块数
         let mut total = data_blocks as usize;
         // indirect1
         if data_blocks > INODE_DIRECT_COUNT {
@@ -160,12 +191,14 @@ impl DiskInode {
         }
         total as u32
     }
-    /// Get the number of data blocks that have to be allocated given the new size of data
+    /// Get the number of data blocks that have to be allocated given the new size of data<br/>
+    /// 计算新size和原本size的block之差
     pub fn blocks_num_needed(&self, new_size: u32) -> u32 {
         assert!(new_size >= self.size);
         Self::total_blocks(new_size) - Self::total_blocks(self.size)
     }
-    /// Inncrease the size of current disk inode
+    /// Inncrease the size of current disk inode<br/>
+    /// 增加size(增加block?)
     pub fn increase_size(
         &mut self,
         new_size: u32,
@@ -176,22 +209,24 @@ impl DiskInode {
         self.size = new_size;
         let mut total_blocks = self.data_blocks();
         let mut new_blocks = new_blocks.into_iter();
-        // fill direct
+        // fill direct, 优先填满直接索引
         while current_blocks < total_blocks.min(INODE_DIRECT_COUNT as u32) {
             self.direct[current_blocks as usize] = new_blocks.next().unwrap();
             current_blocks += 1;
         }
         // alloc indirect1
         if total_blocks > INODE_DIRECT_COUNT as u32 {
+            //  如果恰好此时超过直接索引上线,创建一级间接索引
             if current_blocks == INODE_DIRECT_COUNT as u32 {
                 self.indirect1 = new_blocks.next().unwrap();
             }
+            // 方便计算去掉直接索引的块数
             current_blocks -= INODE_DIRECT_COUNT as u32;
             total_blocks -= INODE_DIRECT_COUNT as u32;
         } else {
             return;
         }
-        // fill indirect1
+        // fill indirect1, 往一级间接索引里填.
         get_block_cache(self.indirect1 as usize, Arc::clone(block_device))
             .lock()
             .modify(0, |indirect1: &mut IndirectBlock| {
@@ -202,15 +237,18 @@ impl DiskInode {
             });
         // alloc indirect2
         if total_blocks > INODE_INDIRECT1_COUNT as u32 {
+            // 同理,申请创建二级间接索引
             if current_blocks == INODE_INDIRECT1_COUNT as u32 {
                 self.indirect2 = new_blocks.next().unwrap();
             }
+            // 同理
             current_blocks -= INODE_INDIRECT1_COUNT as u32;
             total_blocks -= INODE_INDIRECT1_COUNT as u32;
         } else {
             return;
         }
         // fill indirect2 from (a0, b0) -> (a1, b1)
+        // 往二级间接索引里填
         let mut a0 = current_blocks as usize / INODE_INDIRECT1_COUNT;
         let mut b0 = current_blocks as usize % INODE_INDIRECT1_COUNT;
         let a1 = total_blocks as usize / INODE_INDIRECT1_COUNT;
@@ -239,8 +277,10 @@ impl DiskInode {
             });
     }
 
-    /// Clear size to zero and return blocks that should be deallocated.
-    /// We will clear the block contents to zero later.
+    /// Clear size to zero and return blocks that should be deallocated.<br/>
+    /// We will clear the block contents to zero later.<br/>
+    /// 清空文件的内容并回收所有数据和索引块。
+    /// 也是从直接索引开始,一级一级往下清理.
     pub fn clear_size(&mut self, block_device: &Arc<dyn BlockDevice>) -> Vec<u32> {
         let mut v: Vec<u32> = Vec::new();
         let mut data_blocks = self.data_blocks() as usize;
@@ -312,13 +352,15 @@ impl DiskInode {
         self.indirect2 = 0;
         v
     }
-    /// Read data from current disk inode
+    /// Read data from current disk inode<br/>
+    /// 从索引节点里读取数据
     pub fn read_at(
         &self,
         offset: usize,
         buf: &mut [u8],
         block_device: &Arc<dyn BlockDevice>,
     ) -> usize {
+        // 先确定读取数据的头和尾
         let mut start = offset;
         let end = (offset + buf.len()).min(self.size as usize);
         if start >= end {
@@ -326,6 +368,7 @@ impl DiskInode {
         }
         let mut start_block = start / BLOCK_SZ;
         let mut read_size = 0usize;
+        // 循环逐块读取
         loop {
             // calculate end of current block
             let mut end_current_block = (start / BLOCK_SZ + 1) * BLOCK_SZ;
@@ -352,8 +395,9 @@ impl DiskInode {
         }
         read_size
     }
-    /// Write data into current disk inode
-    /// size must be adjusted properly beforehand
+    /// Write data into current disk inode<br/>
+    /// size must be adjusted properly beforehand<br/>
+    /// 向文件写入,但是必须先进行 `increase_size` 操作
     pub fn write_at(
         &mut self,
         offset: usize,
@@ -365,6 +409,7 @@ impl DiskInode {
         assert!(start <= end);
         let mut start_block = start / BLOCK_SZ;
         let mut write_size = 0usize;
+        // 逐块写入
         loop {
             // calculate end of current block
             let mut end_current_block = (start / BLOCK_SZ + 1) * BLOCK_SZ;
@@ -393,10 +438,14 @@ impl DiskInode {
     }
 }
 
-/// A directory entry
+/// A directory entry<br/>
+/// 目录实体<br/>
+/// 正好 32bytes 大小一个块里放16个.
 #[repr(C)]
 pub struct DirEntry {
+    /// 目录名 27bytes 最后需要跟个'\0'符合c的字符串
     name: [u8; NAME_LENGTH_LIMIT + 1],
+    /// 索引节点号
     inode_number: u32,
 }
 

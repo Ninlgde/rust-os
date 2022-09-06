@@ -7,11 +7,16 @@ use alloc::sync::Arc;
 use alloc::vec::Vec;
 use spin::{Mutex, MutexGuard};
 
-/// Virtual filesystem layer over easy-fs
+/// Virtual filesystem layer over easy-fs<br/>
+/// 虚拟文件系统层
 pub struct Inode {
+    /// 所在的 `block_id`
     block_id: usize,
+    /// inode在block里的偏移
     block_offset: usize,
+    /// 实际的fs
     fs: Arc<Mutex<EasyFileSystem>>,
+    /// 实际的硬盘
     block_device: Arc<dyn BlockDevice>,
 }
 
@@ -42,7 +47,8 @@ impl Inode {
             .lock()
             .modify(self.block_offset, f)
     }
-    /// Find inode under a disk inode by name
+    /// Find inode under a disk inode by name<br/>
+    /// 从根目录的 DiskInode 上找到要索引的文件名对应的 inode 编号
     fn find_inode_id(&self, name: &str, disk_inode: &DiskInode) -> Option<u32> {
         // assert it is a directory
         assert!(disk_inode.is_dir());
@@ -84,14 +90,17 @@ impl Inode {
         if new_size < disk_inode.size {
             return;
         }
+        // 计算所需blocks
         let blocks_needed = disk_inode.blocks_num_needed(new_size);
         let mut v: Vec<u32> = Vec::new();
         for _ in 0..blocks_needed {
             v.push(fs.alloc_data());
         }
+        // 增加size
         disk_inode.increase_size(new_size, v, &self.block_device);
     }
     /// Create inode under current inode by name
+    /// 根据name创建索引节点
     pub fn create(&self, name: &str) -> Option<Arc<Inode>> {
         let mut fs = self.fs.lock();
         let op = |root_inode: &DiskInode| {
@@ -101,6 +110,7 @@ impl Inode {
             self.find_inode_id(name, root_inode)
         };
         if self.read_disk_inode(op).is_some() {
+            // 先尝试是否能找到,如果找到了就返回None
             return None;
         }
         // create a new file
@@ -113,6 +123,7 @@ impl Inode {
             .modify(new_inode_block_offset, |new_inode: &mut DiskInode| {
                 new_inode.initialize(DiskInodeType::File);
             });
+        // 存入root_inode
         self.modify_disk_inode(|root_inode| {
             // append file in the dirent
             let file_count = (root_inode.size as usize) / DIRENT_SZ;
