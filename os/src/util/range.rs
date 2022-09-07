@@ -4,6 +4,7 @@ use core::fmt::Debug;
 
 /// T需要实现此trait
 pub trait StepByOne {
+    /// 遍历step
     fn step(&mut self);
 }
 
@@ -21,13 +22,16 @@ impl<T> SimpleRange<T>
 where
     T: StepByOne + Copy + PartialEq + PartialOrd + Debug,
 {
+    /// new a simple range
     pub fn new(start: T, end: T) -> Self {
         assert!(start <= end, "start {:?} > end {:?}!", start, end);
         Self { l: start, r: end }
     }
+    /// get the start
     pub fn get_start(&self) -> T {
         self.l
     }
+    /// get the end
     pub fn get_end(&self) -> T {
         self.r
     }
@@ -57,6 +61,7 @@ impl<T> SimpleRangeIterator<T>
 where
     T: StepByOne + Copy + PartialEq + PartialOrd + Debug,
 {
+    /// Create a new iterator for the simple range structure
     pub fn new(l: T, r: T) -> Self {
         Self { current: l, end: r }
     }
@@ -67,6 +72,7 @@ where
     T: StepByOne + Copy + PartialEq + PartialOrd + Debug,
 {
     type Item = T;
+    /// 遍历 next
     fn next(&mut self) -> Option<Self::Item> {
         if self.current == self.end {
             None

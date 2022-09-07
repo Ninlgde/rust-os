@@ -55,6 +55,7 @@ pub fn println_with_level(args: fmt::Arguments, lvl: Level) {
 }
 
 #[macro_export]
+/// print a log
 macro_rules! log {
     ($lvl:expr, $fmt: literal $(, $($arg: tt)+)?) => {
         $crate::logging::println_with_level(format_args!(concat!($fmt, "\n") $(, $($arg)+)?), $lvl);
@@ -62,6 +63,7 @@ macro_rules! log {
 }
 
 #[macro_export]
+/// logging error
 macro_rules! error {
     ($fmt: literal $(, $($arg: tt)+)?) => {
         log!(log::Level::Error, $fmt $(, $($arg)+)?);
@@ -69,6 +71,7 @@ macro_rules! error {
 }
 
 #[macro_export]
+/// logging warn
 macro_rules! warn {
     ($fmt: literal $(, $($arg: tt)+)?) => {
         log!(log::Level::Warn, $fmt $(, $($arg)+)?);
@@ -76,6 +79,7 @@ macro_rules! warn {
 }
 
 #[macro_export]
+/// logging info
 macro_rules! info {
     ($fmt: literal $(, $($arg: tt)+)?) => {
         log!(log::Level::Info, $fmt $(, $($arg)+)?);
@@ -83,6 +87,7 @@ macro_rules! info {
 }
 
 #[macro_export]
+/// logging debug
 macro_rules! debug {
     ($fmt: literal $(, $($arg: tt)+)?) => {
         log!(log::Level::Debug, $fmt $(, $($arg)+)?);
@@ -90,6 +95,7 @@ macro_rules! debug {
 }
 
 #[macro_export]
+/// logging trace
 macro_rules! trace {
     ($fmt: literal $(, $($arg: tt)+)?) => {
         log!(log::Level::Trace, $fmt $(, $($arg)+)?);

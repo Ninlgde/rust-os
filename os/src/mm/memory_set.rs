@@ -57,6 +57,7 @@ impl MemorySet {
             areas: Vec::new(),
         }
     }
+    /// 获取页表的token
     pub fn token(&self) -> usize {
         self.page_table.token()
     }
@@ -100,6 +101,7 @@ impl MemorySet {
             PTEFlags::R | PTEFlags::X,
         );
     }
+    /// 使用汇编指令 `sfence.vma` 刷新TLB
     pub fn activate(&self) {
         let token = self.page_table.token();
         unsafe {
@@ -274,9 +276,11 @@ impl MemorySet {
         }
         memory_set
     }
+    /// vpn -> pte
     pub fn translate(&self, vpn: VirtPageNum) -> Option<PageTableEntry> {
         self.page_table.translate(vpn)
     }
+    /// 回收数据页
     pub fn recycle_data_pages(&mut self) {
         self.areas.clear();
     }
@@ -391,14 +395,15 @@ pub enum MapType {
 }
 
 bitflags! {
+    /// 映射权限
     pub struct MapPermission: u8 {
-        // readable
+        /// readable
         const R = 1 << 1;
-        // writable
+        /// writable
         const W = 1 << 2;
-        // executable
+        /// executable
         const X = 1 << 3;
-        // user
+        /// user
         const U = 1 << 4;
     }
 }

@@ -39,6 +39,7 @@ bitflags! {
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct PageTableEntry {
+    /// pte bits
     pub bits: usize,
 }
 
@@ -162,9 +163,11 @@ impl PageTable {
         }
         result
     }
+    /// vpn -> pte
     pub fn translate(&self, vpn: VirtPageNum) -> Option<PageTableEntry> {
         self.find_pte(vpn).map(|pte| *pte)
     }
+    /// va -> pa
     pub fn translate_va(&self, va: VirtAddr) -> Option<PhysAddr> {
         self.find_pte(va.clone().floor()).map(|pte| {
             //println!("translate_va:va = {:?}", va);
@@ -175,6 +178,7 @@ impl PageTable {
             (aligned_pa_usize + offset).into()
         })
     }
+    /// Get root ppn
     pub fn token(&self) -> usize {
         // 8 for mode 设置给satp寄存器, 表示开启SV39分页机制
         8usize << 60 | self.root_ppn.0

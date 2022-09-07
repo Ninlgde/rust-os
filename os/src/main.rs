@@ -18,8 +18,8 @@
 //! We then call [`task::run_tasks()`] and for the first time go to
 //! userspace.
 
-// #![deny(missing_docs)]
-// #![deny(warnings)]
+#![deny(missing_docs)]
+#![deny(warnings)]
 #![allow(unused_imports)]
 #![no_std]
 #![no_main]
@@ -58,6 +58,7 @@ pub mod util;
 use core::arch::global_asm;
 global_asm!(include_str!("entry.asm"));
 
+/// rust os enter function
 #[no_mangle]
 pub fn rust_main() -> ! {
     clear_bss();

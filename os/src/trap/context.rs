@@ -2,6 +2,7 @@ use riscv::register::sstatus;
 use riscv::register::sstatus::Sstatus;
 use riscv::register::sstatus::SPP;
 
+/// trap 上下文
 #[repr(C)]
 pub struct TrapContext {
     /// x 寄存器 32个

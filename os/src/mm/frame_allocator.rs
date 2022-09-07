@@ -10,6 +10,7 @@ use lazy_static::lazy_static;
 
 /// 使用tracker包装物理页
 pub struct FrameTracker {
+    /// 无聊页号
     pub ppn: PhysPageNum,
 }
 

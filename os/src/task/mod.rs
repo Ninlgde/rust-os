@@ -105,6 +105,7 @@ pub fn exit_current_and_run_next(exit_code: i32) {
 }
 
 lazy_static! {
+    /// 初始进程
     pub static ref INITPROC: Arc<TaskControlBlock> = Arc::new({
         let inode = open_file("initproc", OpenFlags::RDONLY).unwrap();
         let v = inode.read_all();
@@ -112,6 +113,7 @@ lazy_static! {
     });
 }
 
+/// 将初始进程添加进任务管理器
 pub fn add_initproc() {
     add_task(INITPROC.clone());
 }
