@@ -9,6 +9,7 @@ const BLOCK_SZ: usize = 512;
 
 struct BlockFile(Mutex<File>);
 
+/// 通过file来实现block_device
 impl BlockDevice for BlockFile {
     fn read_block(&self, block_id: usize, buf: &mut [u8]) {
         let mut file = self.0.lock().unwrap();
@@ -29,6 +30,7 @@ fn main() {
     easy_fs_pack().expect("Error when packing easy-fs!");
 }
 
+/// 根据命令行参数source,在target里生成fs.img
 fn easy_fs_pack() -> std::io::Result<()> {
     let matches = App::new("EasyFileSystem packer")
         .arg(

@@ -1,6 +1,6 @@
 //! File and filesystem-related syscalls
 
-use crate::fs::{open_file, OpenFlags};
+use crate::fs::{list_apps, open_file, OpenFlags};
 use crate::mm::{translated_byte_buffer, translated_str, UserBuffer};
 use crate::task::{current_task, current_user_token};
 
@@ -70,5 +70,13 @@ pub fn sys_close(fd: usize) -> isize {
         return -1;
     }
     inner.fd_table[fd].take();
+    0
+}
+
+pub fn sys_ls(path: *const u8) -> isize {
+    let token = current_user_token();
+    let path = translated_str(token, path);
+    println!("files under {:?}", path);
+    list_apps();
     0
 }

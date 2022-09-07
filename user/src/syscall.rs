@@ -12,6 +12,8 @@ const SYSCALL_FORK: usize = 220;
 const SYSCALL_EXEC: usize = 221;
 const SYSCALL_WAITPID: usize = 260;
 
+const SYSCALL_LS: usize = 22;
+
 #[inline(always)]
 fn syscall(id: usize, args: [usize; 3]) -> isize {
     let mut ret: isize;
@@ -41,6 +43,10 @@ pub fn sys_open(path: &str, flags: u32) -> isize {
 /// 返回值：如果成功关闭则返回 0 ，否则返回 -1 。可能的出错原因：传入的文件描述符并不对应一个打开的文件。
 pub fn sys_close(fd: usize) -> isize {
     syscall(SYSCALL_CLOSE, [fd as usize, 0, 0])
+}
+
+pub fn sys_ls(path: &str) -> isize {
+    syscall(SYSCALL_LS, [path.as_ptr() as usize, 0, 0])
 }
 
 /// 功能：从文件中读取一段内容到缓冲区。

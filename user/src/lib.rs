@@ -63,6 +63,10 @@ pub fn close(fd: usize) -> isize {
     sys_close(fd)
 }
 
+pub fn ls(path: &str) -> isize {
+    sys_ls(path)
+}
+
 pub fn read(fd: usize, buf: &mut [u8]) -> isize {
     sys_read(fd, buf)
 }

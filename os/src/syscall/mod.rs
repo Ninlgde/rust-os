@@ -22,6 +22,8 @@ const SYSCALL_FORK: usize = 220;
 const SYSCALL_EXEC: usize = 221;
 const SYSCALL_WAITPID: usize = 260;
 
+const SYSCALL_LS: usize = 22;
+
 mod fs;
 mod process;
 
@@ -33,6 +35,7 @@ pub fn syscall(syscall_id: usize, args: [usize; 3]) -> isize {
     match syscall_id {
         SYSCALL_OPEN => sys_open(args[0] as *const u8, args[1] as u32),
         SYSCALL_CLOSE => sys_close(args[0]),
+        SYSCALL_LS => sys_ls(args[0] as *const u8),
         // 读
         SYSCALL_READ => sys_read(args[0], args[1] as *const u8, args[2]),
         // 写操作
