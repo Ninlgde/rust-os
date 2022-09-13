@@ -14,7 +14,7 @@ use user_lib::{exec, fork, wait, yield_};
 fn main() -> i32 {
     // info!("init proc");
     if fork() == 0 {
-        exec("user_shell\0");
+        exec("user_shell\0", &[core::ptr::null::<u8>()]);
     } else {
         loop {
             let mut exit_code: i32 = 0;

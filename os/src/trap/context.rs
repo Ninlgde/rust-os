@@ -4,6 +4,7 @@ use riscv::register::sstatus::SPP;
 
 /// trap 上下文
 #[repr(C)]
+#[derive(Debug, Clone, Copy)]
 pub struct TrapContext {
     /// x 寄存器 32个
     pub x: [usize; 32],

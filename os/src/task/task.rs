@@ -3,10 +3,12 @@
 use super::TaskContext;
 use crate::config::TRAP_CONTEXT;
 use crate::fs::{File, Stdin, Stdout};
-use crate::mm::{MemorySet, PhysPageNum, VirtAddr, KERNEL_SPACE};
+use crate::mm::{translated_refmut, MemorySet, PhysPageNum, VirtAddr, KERNEL_SPACE};
 use crate::sync::UPSafeCell;
 use crate::task::pid::{pid_alloc, KernelStack, PidHandle};
+use crate::task::{SignalActions, SignalFlags};
 use crate::trap::{trap_handler, TrapContext};
+use alloc::string::String;
 use alloc::sync::{Arc, Weak};
 use alloc::vec;
 use alloc::vec::Vec;
@@ -52,6 +54,20 @@ pub struct TaskControlBlockInner {
     pub exit_code: i32,
     /// 文件描述符表
     pub fd_table: Vec<Option<Arc<dyn File + Send + Sync>>>,
+    /// 要响应的信号
+    pub signals: SignalFlags,
+    /// 要屏蔽的信号
+    pub signal_mask: SignalFlags,
+    /// 正在处理的信号
+    pub handling_sig: isize,
+    /// 信号处理例程表
+    pub signal_actions: SignalActions,
+    /// 任务是否已经被杀死了
+    pub killed: bool,
+    /// 任务是否已经被暂停了
+    pub frozen: bool,
+    /// 被打断的trap上下文
+    pub trap_ctx_backup: Option<TrapContext>,
 }
 
 /// implement
@@ -119,6 +135,13 @@ impl TaskControlBlock {
                         // 2 -> stderr
                         Some(Arc::new(Stdout)),
                     ],
+                    signals: SignalFlags::empty(),
+                    signal_mask: SignalFlags::empty(),
+                    handling_sig: -1,
+                    signal_actions: SignalActions::default(),
+                    killed: false,
+                    frozen: false,
+                    trap_ctx_backup: None,
                 })
             },
         };
@@ -134,13 +157,38 @@ impl TaskControlBlock {
         task_control_block
     }
     /// implementation of `exec`
-    pub fn exec(&self, elf_data: &[u8]) {
+    pub fn exec(&self, elf_data: &[u8], args: Vec<String>) {
         // memory_set with elf program headers/trampoline/trap context/user stack
-        let (memory_set, user_sp, entry_point) = MemorySet::from_elf(elf_data);
+        let (memory_set, mut user_sp, entry_point) = MemorySet::from_elf(elf_data);
         let trap_cx_ppn = memory_set
             .translate(VirtAddr::from(TRAP_CONTEXT).into())
             .unwrap()
             .ppn();
+
+        // push arguments on user stack
+        user_sp -= (args.len() + 1) * core::mem::size_of::<usize>();
+        let argv_base = user_sp;
+        let mut argv: Vec<_> = (0..=args.len())
+            .map(|arg| {
+                translated_refmut(
+                    memory_set.token(),
+                    (argv_base + arg * core::mem::size_of::<usize>()) as *mut usize,
+                )
+            })
+            .collect();
+        *argv[args.len()] = 0;
+        for i in 0..args.len() {
+            user_sp -= args[i].len() + 1;
+            *argv[i] = user_sp;
+            let mut p = user_sp;
+            for c in args[i].as_bytes() {
+                *translated_refmut(memory_set.token(), p as *mut u8) = *c;
+                p += 1;
+            }
+            *translated_refmut(memory_set.token(), p as *mut u8) = 0;
+        }
+        // make the user_sp aligned to 8B for k210 platform
+        user_sp -= user_sp % core::mem::size_of::<usize>();
 
         // **** access current TCB exclusively
         let mut inner = self.inner_exclusive_access();
@@ -149,13 +197,15 @@ impl TaskControlBlock {
         // update trap_cx ppn
         inner.trap_cx_ppn = trap_cx_ppn;
         // initialize trap_cx
-        let trap_cx = TrapContext::app_init_context(
+        let mut trap_cx = TrapContext::app_init_context(
             entry_point,
             user_sp,
             KERNEL_SPACE.exclusive_access().token(),
             self.kernel_stack.get_top(),
             trap_handler as usize,
         );
+        trap_cx.x[10] = args.len();
+        trap_cx.x[11] = argv_base;
         *inner.get_trap_cx() = trap_cx;
         // **** release inner automatically
     }
@@ -196,6 +246,14 @@ impl TaskControlBlock {
                     children: Vec::new(),
                     exit_code: 0,
                     fd_table: new_fd_table,
+                    signals: SignalFlags::empty(),
+                    // inherit the signal_mask and signal_action
+                    signal_mask: parent_inner.signal_mask,
+                    handling_sig: -1,
+                    signal_actions: parent_inner.signal_actions.clone(),
+                    killed: false,
+                    frozen: false,
+                    trap_ctx_backup: None,
                 })
             },
         });
