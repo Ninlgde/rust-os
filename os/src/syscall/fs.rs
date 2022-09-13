@@ -62,6 +62,7 @@ pub fn sys_read(fd: usize, buf: *const u8, len: usize) -> isize {
     }
 }
 
+/// 以`flags`为标记,打开路径为`path`的文件
 pub fn sys_open(path: *const u8, flags: u32) -> isize {
     let task = current_task().unwrap();
     let token = current_user_token();
@@ -76,6 +77,7 @@ pub fn sys_open(path: *const u8, flags: u32) -> isize {
     }
 }
 
+/// 建立pipe
 pub fn sys_pipe(pipe: *mut usize) -> isize {
     let task = current_task().unwrap();
     let token = current_user_token();
@@ -90,6 +92,7 @@ pub fn sys_pipe(pipe: *mut usize) -> isize {
     0
 }
 
+/// 关闭文件`fd`
 pub fn sys_close(fd: usize) -> isize {
     let task = current_task().unwrap();
     let mut inner = task.inner_exclusive_access();
@@ -103,6 +106,7 @@ pub fn sys_close(fd: usize) -> isize {
     0
 }
 
+/// 显示"/"下面的所有文件
 pub fn sys_ls(path: *const u8) -> isize {
     let token = current_user_token();
     let path = translated_str(token, path);

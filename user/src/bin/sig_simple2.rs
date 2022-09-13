@@ -4,10 +4,7 @@
 #[macro_use]
 extern crate user_lib;
 
-use user_lib::{
-    exit, fork, getpid, kill, sigaction, sigprocmask, sigreturn, sleep, waitpid, SignalAction,
-    SignalFlags,
-};
+use user_lib::{exit, fork, kill, signal, sigreturn, sleep, waitpid};
 
 fn func() {
     println!("user_sig_test succsess");
@@ -18,13 +15,9 @@ fn func() {
 pub fn main() -> i32 {
     let pid = fork();
     if pid == 0 {
-        let mut new = SignalAction::default();
-        let old = SignalAction::default();
-        new.handler = func as usize;
-
-        println!("signal_simple2: child sigaction");
-        if sigaction(10, &new, &old) < 0 {
-            panic!("Sigaction failed!");
+        println!("signal_simple2: child signal");
+        if signal(10, func as usize) < 0 {
+            panic!("signal failed!");
         }
         sleep(1000);
         println!("signal_simple2: child done");

@@ -95,12 +95,15 @@ impl TaskControlBlockInner {
 }
 
 impl TaskControlBlock {
+    /// 获取inner
     pub fn inner_exclusive_access(&self) -> RefMut<'_, TaskControlBlockInner> {
         self.inner.exclusive_access()
     }
+    /// 获取pid
     pub fn getpid(&self) -> usize {
         self.pid.0
     }
+    /// 创建新的新闻.
     pub fn new(elf_data: &[u8]) -> Self {
         // 解析传入的 ELF 格式数据构造应用的地址空间
         let (memory_set, user_sp, entry_point) = MemorySet::from_elf(elf_data);
@@ -204,6 +207,7 @@ impl TaskControlBlock {
             self.kernel_stack.get_top(),
             trap_handler as usize,
         );
+        // 这两个参数在第一次进入对应应用的用户态的时候会被接收并用于还原命令行参数
         trap_cx.x[10] = args.len();
         trap_cx.x[11] = argv_base;
         *inner.get_trap_cx() = trap_cx;

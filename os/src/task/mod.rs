@@ -126,6 +126,7 @@ pub fn add_initproc() {
     add_task(INITPROC.clone());
 }
 
+/// 检查当前process的signals状态.
 pub fn check_signals_error_of_current() -> Option<(i32, &'static str)> {
     let task = current_task().unwrap();
     let task_inner = task.inner_exclusive_access();
@@ -136,6 +137,7 @@ pub fn check_signals_error_of_current() -> Option<(i32, &'static str)> {
     task_inner.signals.check_error()
 }
 
+/// 添加信号到task的signals中
 pub fn current_add_signal(signal: SignalFlags) {
     let task = current_task().unwrap();
     let mut task_inner = task.inner_exclusive_access();
@@ -146,6 +148,7 @@ pub fn current_add_signal(signal: SignalFlags) {
     // );
 }
 
+/// 内核信号处理器.
 fn call_kernel_signal_handler(signal: SignalFlags) {
     let task = current_task().unwrap();
     let mut task_inner = task.inner_exclusive_access();
@@ -170,6 +173,7 @@ fn call_kernel_signal_handler(signal: SignalFlags) {
     }
 }
 
+/// 用户信号处理器.
 fn call_user_signal_handler(sig: usize, signal: SignalFlags) {
     let task = current_task().unwrap();
     let mut task_inner = task.inner_exclusive_access();
@@ -199,6 +203,7 @@ fn call_user_signal_handler(sig: usize, signal: SignalFlags) {
     }
 }
 
+/// 逐个检查等待中的signals
 fn check_pending_signals() {
     for sig in 0..(MAX_SIG + 1) {
         let task = current_task().unwrap();
@@ -245,6 +250,7 @@ fn check_pending_signals() {
     }
 }
 
+/// 信号处理器
 pub fn handle_signals() {
     check_pending_signals();
     loop {

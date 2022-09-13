@@ -1,7 +1,6 @@
 #![no_std]
 #![no_main]
 
-#[macro_use]
 extern crate user_lib;
 
 // use user_lib::{sigaction, sigprocmask, SignalAction, SignalFlags, fork, exit, wait, kill, getpid, sleep, sigreturn};
@@ -14,13 +13,9 @@ fn func() {
 
 #[no_mangle]
 pub fn main() -> i32 {
-    let mut new = SignalAction::default();
-    let old = SignalAction::default();
-    new.handler = func as usize;
-
-    println!("signal_simple: sigaction");
-    if sigaction(SIGUSR1, &new, &old) < 0 {
-        panic!("Sigaction failed!");
+    println!("signal_simple: signal");
+    if signal(SIGUSR1, func as usize) < 0 {
+        panic!("signal failed!");
     }
     println!("signal_simple: kill");
     if kill(getpid() as usize, SIGUSR1) < 0 {

@@ -1,7 +1,6 @@
 #![no_std]
 #![no_main]
 
-#[macro_use]
 extern crate user_lib;
 
 // use user_lib::{sigaction, sigprocmask, SignalAction, SignalFlags, fork, exit, wait, kill, getpid, sleep, sigreturn};
@@ -24,20 +23,13 @@ fn func3() {
 }
 
 fn user_sig_test_failsignum() {
-    let mut new = SignalAction::default();
-    let old = SignalAction::default();
-    new.handler = func as usize;
-    if sigaction(50, &new, &old) >= 0 {
+    if signal(50, func as usize) >= 0 {
         panic!("Wrong sigaction but success!");
     }
 }
 
 fn user_sig_test_kill() {
-    let mut new = SignalAction::default();
-    let old = SignalAction::default();
-    new.handler = func as usize;
-
-    if sigaction(SIGUSR1, &new, &old) < 0 {
+    if signal(SIGUSR1, func as usize) < 0 {
         panic!("Sigaction failed!");
     }
     if kill(getpid() as usize, SIGUSR1) < 0 {
@@ -49,10 +41,7 @@ fn user_sig_test_kill() {
 fn user_sig_test_multiprocsignals() {
     let pid = fork();
     if pid == 0 {
-        let mut new = SignalAction::default();
-        let old = SignalAction::default();
-        new.handler = func as usize;
-        if sigaction(SIGUSR1, &new, &old) < 0 {
+        if signal(SIGUSR1, func as usize) < 0 {
             panic!("Sigaction failed!");
         }
     } else {
@@ -126,20 +115,12 @@ fn kernel_sig_test_failignorekill() {
 }
 
 fn final_sig_test() {
-    let mut new = SignalAction::default();
-    let old = SignalAction::default();
-    new.handler = func2 as usize;
-
-    let mut new2 = SignalAction::default();
-    let old2 = SignalAction::default();
-    new2.handler = func3 as usize;
-
     let pid = fork();
     if pid == 0 {
-        if sigaction(SIGUSR1, &new, &old) < 0 {
+        if signal(SIGUSR1, func2 as usize) < 0 {
             panic!("Sigaction failed!");
         }
-        if sigaction(14, &new2, &old2) < 0 {
+        if signal(14, func3 as usize) < 0 {
             panic!("Sigaction failed!");
         }
         if kill(getpid() as usize, SIGUSR1) < 0 {

@@ -3,7 +3,6 @@
 
 extern crate alloc;
 
-#[macro_use]
 extern crate user_lib;
 use user_lib::console::getchar;
 use user_lib::*;
@@ -17,16 +16,13 @@ fn func() {
 }
 
 #[no_mangle]
+#[allow(unreachable_code)]
 pub fn main() -> i32 {
     println!("sig_ctrlc starting....  Press 'ctrl-c' or 'ENTER'  will quit.");
 
-    let mut new = SignalAction::default();
-    let old = SignalAction::default();
-    new.handler = func as usize;
-
-    println!("sig_ctrlc: sigaction");
-    if sigaction(SIGINT, &new, &old) < 0 {
-        panic!("Sigaction failed!");
+    println!("sig_ctrlc: signal");
+    if signal(SIGINT, func as usize) < 0 {
+        panic!("signal failed!");
     }
     println!("sig_ctrlc: getchar....");
     loop {

@@ -132,6 +132,7 @@ pub fn sys_kill(pid: usize, signum: i32) -> isize {
     }
 }
 
+/// 设置要阻止的信号
 pub fn sys_sigprocmask(mask: u32) -> isize {
     if let Some(task) = current_task() {
         let mut inner = task.inner_exclusive_access();
@@ -147,6 +148,7 @@ pub fn sys_sigprocmask(mask: u32) -> isize {
     }
 }
 
+/// 清除堆栈帧，从信号处理例程返回
 pub fn sys_sigretrun() -> isize {
     if let Some(task) = current_task() {
         let mut inner = task.inner_exclusive_access();
@@ -160,6 +162,7 @@ pub fn sys_sigretrun() -> isize {
     }
 }
 
+/// 清除堆栈帧.
 fn check_sigaction_error(signal: SignalFlags, action: usize, old_action: usize) -> bool {
     if action == 0
         || old_action == 0
@@ -171,7 +174,7 @@ fn check_sigaction_error(signal: SignalFlags, action: usize, old_action: usize) 
         false
     }
 }
-
+/// signal绑定.
 pub fn sys_sigaction(
     signum: i32,
     action: *const SignalAction,

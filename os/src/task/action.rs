@@ -23,6 +23,7 @@ impl Default for SignalAction {
 #[derive(Clone)]
 /// Actions for a signal
 pub struct SignalActions {
+    /// 信号集合
     pub table: [SignalAction; MAX_SIG + 1],
 }
 

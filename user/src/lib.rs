@@ -269,3 +269,11 @@ pub fn sigprocmask(mask: u32) -> isize {
 pub fn sigreturn() -> isize {
     sys_sigreturn()
 }
+
+pub fn signal(signum: i32, handler: usize) -> isize {
+    let mut new = SignalAction::default();
+    let old = SignalAction::default();
+    new.handler = handler;
+
+    sigaction(signum, &new, &old)
+}
