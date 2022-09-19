@@ -182,8 +182,8 @@ pub fn sys_sigaction(
     )
 }
 
-/// 功能: 向指定进程发送信号
-/// 参数: `mask` 表示接收信号的进程
+/// 功能: 设置要阻止的信号
+/// 参数: `mask` 信号掩码
 /// 返回值: -1失败 其他值表示`old_mask`
 /// syscall ID: 135
 pub fn sys_sigprocmask(mask: u32) -> isize {

@@ -155,7 +155,7 @@ pub fn sys_sigretrun() -> isize {
         inner.handling_sig = -1;
         // restore the trap context
         let trap_ctx = inner.get_trap_cx();
-        *trap_ctx = inner.trap_ctx_backup.unwrap();
+        *trap_ctx = inner.trap_ctx_backup.pop().unwrap().unwrap();
         0
     } else {
         -1

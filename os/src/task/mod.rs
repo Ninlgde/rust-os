@@ -190,7 +190,7 @@ fn call_user_signal_handler(sig: usize, signal: SignalFlags) {
 
         // backup trapframe
         let mut trap_ctx = task_inner.get_trap_cx();
-        task_inner.trap_ctx_backup = Some(*trap_ctx);
+        task_inner.trap_ctx_backup.push(Some(*trap_ctx));
 
         // modify trapframe
         trap_ctx.sepc = handler;
@@ -210,7 +210,11 @@ fn check_pending_signals() {
         let task_inner = task.inner_exclusive_access();
         let signal = SignalFlags::from_bits(1 << sig).unwrap();
         if task_inner.signals.contains(signal) && (!task_inner.signal_mask.contains(signal)) {
-            if task_inner.handling_sig == -1 {
+            if task_inner.handling_sig == -1
+                || !task_inner.signal_actions.table[task_inner.handling_sig as usize]
+                    .mask
+                    .contains(signal)
+            {
                 drop(task_inner);
                 drop(task);
                 if signal == SignalFlags::SIGKILL
@@ -224,26 +228,6 @@ fn check_pending_signals() {
                     // signal is a user signal
                     call_user_signal_handler(sig, signal);
                     return;
-                }
-            } else {
-                if !task_inner.signal_actions.table[task_inner.handling_sig as usize]
-                    .mask
-                    .contains(signal)
-                {
-                    drop(task_inner);
-                    drop(task);
-                    if signal == SignalFlags::SIGKILL
-                        || signal == SignalFlags::SIGSTOP
-                        || signal == SignalFlags::SIGCONT
-                        || signal == SignalFlags::SIGDEF
-                    {
-                        // signal is a kernel signal
-                        call_kernel_signal_handler(signal);
-                    } else {
-                        // signal is a user signal
-                        call_user_signal_handler(sig, signal);
-                        return;
-                    }
                 }
             }
         }

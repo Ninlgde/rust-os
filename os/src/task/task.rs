@@ -67,7 +67,7 @@ pub struct TaskControlBlockInner {
     /// 任务是否已经被暂停了
     pub frozen: bool,
     /// 被打断的trap上下文
-    pub trap_ctx_backup: Option<TrapContext>,
+    pub trap_ctx_backup: Vec<Option<TrapContext>>,
 }
 
 /// implement
@@ -144,7 +144,7 @@ impl TaskControlBlock {
                     signal_actions: SignalActions::default(),
                     killed: false,
                     frozen: false,
-                    trap_ctx_backup: None,
+                    trap_ctx_backup: Vec::new(),
                 })
             },
         };
@@ -257,7 +257,7 @@ impl TaskControlBlock {
                     signal_actions: parent_inner.signal_actions.clone(),
                     killed: false,
                     frozen: false,
-                    trap_ctx_backup: None,
+                    trap_ctx_backup: Vec::new(),
                 })
             },
         });
